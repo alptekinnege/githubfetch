@@ -113,18 +113,18 @@ print(f"\n{github_url}")
 print(f"{'-' * len(github_url)}")
 
 # Display info with avatar on the side
-for i, element in enumerate(elements):
-    info_line = f"{element['text']} {element['value']}"
-    if i < len(avatar_art):
-        # Show avatar art alongside info
-        print(f"{avatar_art[i]}  {info_line}")
-    else:
-        # Show just info when avatar art is done
-        print(f"{' ' * 38}{info_line}")
+max_avatar_height = len(avatar_art)
+max_elements = len(elements)
 
-# Show remaining avatar art if any
-if len(avatar_art) > len(elements):
-    for i in range(len(elements), len(avatar_art)):
-        print(avatar_art[i])
+# First show all avatar lines
+if avatar_art:
+    for line in avatar_art:
+        print(line)
+    print()  # Empty line after avatar
+
+# Then show all the info
+for element in elements:
+    info_line = f"{element['text']} {element['value']}"
+    print(info_line)
 
 print("\n")
