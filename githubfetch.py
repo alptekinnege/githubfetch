@@ -1,130 +1,127 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+"""
+Show a GitHub user’s avatar + profile data, side-by-side, in true-colour ASCII.
+"""
 
-import requests
-import sys
 import os
-from PIL import Image
+import sys
 import io
+import textwrap
+import requests
+from PIL import Image
 
-if len(sys.argv) < 2:
-    print(f"Usage: {sys.argv[0]} <your-github-username>")
-    sys.exit(1)
-
+# ──────────────────────────────────────────────────────────────────── Colours ──
 class Color:
     def __init__(self):
-        # Windows Command Prompt ANSI color codes
-        self.red = "\033[91m"
-        self.green = "\033[92m"
-        self.yellow = "\033[93m"
+        self.red        = "\033[91m"
+        self.green      = "\033[92m"
+        self.yellow     = "\033[93m"
         self.light_blue = "\033[94m"
-        self.light_red = "\033[95m"
-        self.blue = "\033[96m"
-        self.reset = "\033[0m"
-        
-    def color(self, color_name, text):
-        return f"{color_name}{text}{self.reset}"
+        self.light_red  = "\033[95m"
+        self.blue       = "\033[96m"
+        self.reset      = "\033[0m"
 
-def display_avatar(avatar_url):
-    """Download and display avatar as true-color ASCII art"""
-    try:
-        response = requests.get(avatar_url)
-        if response.ok:
-            try:
-                img = Image.open(io.BytesIO(response.content))
-                # Convert to RGB to ensure we have color data
-                img = img.convert('RGB')
-                # Make it truly square
-                img = img.resize((18, 18))  # Perfect square
-                
-                ascii_art = []
-                for y in range(img.height):
-                    row = []
-                    for x in range(img.width):
-                        r, g, b = img.getpixel((x, y))
-                        
-                        # Use true color ANSI codes for accurate colors
-                        # Format: \033[38;2;r;g;bm for foreground color
-                        true_color = f"\033[38;2;{r};{g};{b}m"
-                        
-                        # Use block character to represent the pixel
-                        colored_block = f"{true_color}██{color.reset}"
-                        row.append(colored_block)
-                    ascii_art.append(''.join(row))
-                
-                return ascii_art
-                
-            except ImportError:
-                pass
-                
-    except Exception:
-        pass
-    
-    return []
+    def paint(self, colour_code, text):
+        return f"{colour_code}{text}{self.reset}"
 
+
+# ──────────────────────────────────────────────────────────────── ANSI on Win ──
 def enable_ansi_colors():
-    """Enable ANSI colors in Windows Command Prompt"""
-    if os.name == 'nt':  # Windows
+    """Enable ANSI escape sequences on Windows terminals."""
+    if os.name == "nt":                        # only Windows needs this
         try:
             import ctypes
             kernel32 = ctypes.windll.kernel32
-            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-        except:
+            handle   = kernel32.GetStdHandle(-11)    # STD_OUTPUT_HANDLE = -11
+            kernel32.SetConsoleMode(handle, 7)       # ENABLE_VIRTUAL_TERMINAL
+        except Exception:
             pass
 
-# Enable colors for Windows
-enable_ansi_colors()
 
-color = Color()
-indent = " " * 22
-username = sys.argv[1]
-github_url = f"{username}@github.com"
-url = f"https://api.github.com/users/{username}"
+# ────────────────────────────────────────────────────────────── Avatar helper ──
+def display_avatar(avatar_url, colour):
+    """Return a list of strings, each representing one row of coloured blocks."""
+    try:
+        r = requests.get(avatar_url, timeout=10)
+        r.raise_for_status()
+        img = Image.open(io.BytesIO(r.content)).convert("RGB").resize((18, 18))
 
-print(f"Fetching GitHub profile for: {username}")
+        art_rows = []
+        for y in range(img.height):
+            row_fragments = []
+            for x in range(img.width):
+                r_, g_, b_ = img.getpixel((x, y))
+                true_col   = f"\033[38;2;{r_};{g_};{b_}m"
+                row_fragments.append(f"{true_col}██{colour.reset}")
+            art_rows.append("".join(row_fragments))
+        return art_rows
+    except Exception:
+        return []
 
-response = requests.get(url)
 
-if not response.ok:
-    print(f"{color.red}Error: {response.status_code}{color.reset}")
-    if response.status_code == 404:
-        print(f"{color.red}User '{username}' not found on GitHub{color.reset}")
-    sys.exit(1)
+# ─────────────────────────────────────────────────────────────────────  MAIN ──
+def main():
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <github-user>")
+        sys.exit(1)
 
-data = response.json()
+    enable_ansi_colors()
+    colour   = Color()
+    username = sys.argv[1]
 
-# Display avatar
-avatar_art = []
-if data.get('avatar_url'):
-    avatar_art = display_avatar(data.get('avatar_url'))
+    print(f"Fetching GitHub profile for: {username}")
+    url  = f"https://api.github.com/users/{username}"
+    resp = requests.get(url, timeout=10)
 
-elements = [
-    {"text": color.color(color.light_blue, "Username:"), "value": data.get('login')},
-    {"text": color.color(color.yellow, "Name:"), "value": data.get('name', 'N/A') or 'N/A'},
-    {"text": color.color(color.green, "Bio:"), "value": data.get('bio', 'N/A') or 'N/A'},
-    {"text": color.color(color.red, "Location:"), "value": data.get('location', 'Not Provided') or 'Not Provided'},
-    {"text": color.color(color.light_red, "Public Repos:"), "value": data.get('public_repos')},
-    {"text": color.color(color.blue, "Followers:"), "value": data.get('followers')},
-    {"text": color.color(color.light_blue, "Following:"), "value": data.get('following')},
-    {"text": color.color(color.yellow, "Created:"), "value": data.get('created_at', 'N/A')[:10] if data.get('created_at') else 'N/A'},
-    {"text": color.color(color.green, "Profile URL:"), "value": data.get('html_url')},
-]
+    if resp.status_code == 404:
+        print(colour.paint(colour.red, f"Error: user '{username}' not found."))
+        sys.exit(1)
+    elif not resp.ok:
+        print(colour.paint(colour.red, f"GitHub API error: {resp.status_code}"))
+        sys.exit(1)
 
-print(f"\n{github_url}")
-print(f"{'-' * len(github_url)}")
+    data        = resp.json()
+    avatar_rows = display_avatar(data.get("avatar_url"), colour)
 
-# Display info with avatar on the side
-max_avatar_height = len(avatar_art)
-max_elements = len(elements)
+    # ───────────────────────────────────────── profile → coloured field list ──
+    elements = [
+        {"label": colour.paint(colour.light_blue, "Username:"),     "value": data.get("login")},
+        {"label": colour.paint(colour.yellow,     "Name:"),         "value": data.get("name") or "N/A"},
+        {"label": colour.paint(colour.green,      "Bio:"),          "value": data.get("bio") or "N/A"},
+        {"label": colour.paint(colour.red,        "Location:"),     "value": data.get("location") or "Not Provided"},
+        {"label": colour.paint(colour.light_red,  "Public Repos:"), "value": data.get("public_repos")},
+        {"label": colour.paint(colour.blue,       "Followers:"),    "value": data.get("followers")},
+        {"label": colour.paint(colour.light_blue, "Following:"),    "value": data.get("following")},
+        {"label": colour.paint(colour.yellow,     "Created:"),      "value": (data.get("created_at") or "")[:10]},
+        {"label": colour.paint(colour.green,      "Profile URL:"),  "value": data.get("html_url")},
+    ]
 
-# First show all avatar lines
-if avatar_art:
-    for line in avatar_art:
-        print(line)
-    print()  # Empty line after avatar
+    # ─────────────────────────────── tidy text block (remove \n + wrap) ──
+    info_lines = []
+    WRAP   = 50                           # characters per line in the right column
+    for item in elements:
+        raw_val = str(item["value"]).replace("\n", " ")
+        wrapped = textwrap.wrap(raw_val, WRAP) or [""]
+        # first wrapped line with label
+        info_lines.append(f"{item['label']} {wrapped[0]}")
+        # further wrapped lines indented to align
+        indent = " " * (len(item["label"]) + 1)
+        for w in wrapped[1:]:
+            info_lines.append(f"{indent}{w}")
 
-# Then show all the info
-for element in elements:
-    info_line = f"{element['text']} {element['value']}"
-    print(info_line)
+    # ─────────────────────────────── side-by-side output ─────────────────
+    AVATAR_WIDTH = 36                     # 18 “██” = 36 visible chars
+    BLANK_AVATAR = " " * AVATAR_WIDTH
+    SEP          = " | "
 
-print("\n")
+    max_rows = max(len(avatar_rows), len(info_lines))
+    for i in range(max_rows):
+        left  = avatar_rows[i] if i < len(avatar_rows) else BLANK_AVATAR
+        right = info_lines[i]  if i < len(info_lines)  else ""
+        print(f"{left}{SEP}{right}")
+
+    print()                               # final new-line for neat prompt return
+
+
+if __name__ == "__main__":
+    main()
