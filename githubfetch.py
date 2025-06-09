@@ -25,28 +25,46 @@ class Color:
         return f"{color_name}{text}{self.reset}"
 
 def display_avatar(avatar_url):
-    """Download and display avatar image (Windows compatible)"""
+    """Download and display avatar as colorful ASCII art"""
     try:
-        # Download the image
         response = requests.get(avatar_url)
         if response.ok:
-            # Try to display using PIL (if available)
             try:
                 img = Image.open(io.BytesIO(response.content))
-                # Resize for terminal display
-                img.thumbnail((80, 80))
+                # Keep original colors and resize to fit terminal width
+                img = img.resize((24, 16))  # Wider rectangle to fit beside text
                 
-                # Try to display in Windows Terminal or compatible terminal
-                # This works in Windows Terminal, PowerShell 7, or WSL
-                print(f"Avatar URL: {avatar_url}")
-                print("(Avatar image downloaded - view at URL above)")
+                # Convert to ASCII with colors
+                ascii_chars = ['█', '▓', '▒', '░', ' ']
+                colors = [color.red, color.yellow, color.green, color.blue, color.light_blue]
+                
+                ascii_art = []
+                for y in range(img.height):
+                    row = []
+                    for x in range(img.width):
+                        pixel = img.getpixel((x, y))
+                        if isinstance(pixel, tuple) and len(pixel) >= 3:
+                            # RGB image
+                            brightness = sum(pixel[:3]) // 3
+                        else:
+                            # Grayscale
+                            brightness = pixel
+                        
+                        ascii_index = int(brightness / 255 * (len(ascii_chars) - 1))
+                        color_index = int(brightness / 255 * (len(colors) - 1))
+                        colored_char = f"{colors[color_index]}{ascii_chars[ascii_index]}{color.reset}"
+                        row.append(colored_char)
+                    ascii_art.append(''.join(row))
+                
+                return ascii_art
                 
             except ImportError:
-                print(f"Avatar URL: {avatar_url}")
-                print("(Install Pillow with 'pip install Pillow' for better image handling)")
+                pass
                 
-    except Exception as e:
-        print(f"Could not fetch avatar: {e}")
+    except Exception:
+        pass
+    
+    return []
 
 def enable_ansi_colors():
     """Enable ANSI colors in Windows Command Prompt"""
@@ -68,7 +86,6 @@ github_url = f"{username}@github.com"
 url = f"https://api.github.com/users/{username}"
 
 print(f"Fetching GitHub profile for: {username}")
-print("=" * 50)
 
 response = requests.get(url)
 
@@ -81,8 +98,9 @@ if not response.ok:
 data = response.json()
 
 # Display avatar
+avatar_art = []
 if data.get('avatar_url'):
-    display_avatar(data.get('avatar_url'))
+    avatar_art = display_avatar(data.get('avatar_url'))
 
 elements = [
     {"text": color.color(color.light_blue, "Username:"), "value": data.get('login')},
@@ -96,11 +114,22 @@ elements = [
     {"text": color.color(color.green, "Profile URL:"), "value": data.get('html_url')},
 ]
 
-print(f"\n{indent} {github_url}")
-print(f"{indent} {'-' * len(github_url)}")
+print(f"\n{github_url}")
+print(f"{'-' * len(github_url)}")
 
-for element in elements:
-    print(f"{indent} {element['text']} {element['value']}")
+# Display info with avatar on the side
+for i, element in enumerate(elements):
+    info_line = f"{element['text']} {element['value']}"
+    if i < len(avatar_art):
+        # Show avatar art alongside info
+        print(f"{avatar_art[i]}  {info_line}")
+    else:
+        # Show just info when avatar art is done
+        print(f"{' ' * 26}{info_line}")
 
-print("\n" + "=" * 50)
-print(f"{color.green}GitHub profile fetch completed!{color.reset}")
+# Show remaining avatar art if any
+if len(avatar_art) > len(elements):
+    for i in range(len(elements), len(avatar_art)):
+        print(avatar_art[i])
+
+print("\n")
