@@ -9,7 +9,7 @@ A neofetch like program for github profiles
 ## Installing
 ```
 pip install requests pillow
-gh repo clone https://github.com/alptekinnege/githubfetch-win
+git clone https://github.com/alptekinnege/githubfetch-win
 ```
 
 ## Usage
@@ -17,4 +17,4 @@ gh repo clone https://github.com/alptekinnege/githubfetch-win
 python githubfetch.py <username>
 ```
 ## Example output
-![example image](https://i.imgur.com/NdmszFZ.png)
+![example image](screenshot0.png)
