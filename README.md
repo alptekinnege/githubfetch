@@ -16,5 +16,5 @@ git clone https://github.com/alptekinnege/githubfetch-win
 ```
 python githubfetch.py <username>
 ```
-## Example output
+## Example output(torvalds)
 ![example image](screenshot0.png)
