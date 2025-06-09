@@ -9,7 +9,7 @@ A neofetch like program for github profiles
 ## Installing
 ```
 pip install requests pillow
-gh repo clone https://github.com/alptekinnege/githubfetch-win
+git clone https://github.com/alptekinnege/githubfetch-win
 ```
 
 ## Usage
