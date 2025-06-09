@@ -17,4 +17,4 @@ git clone https://github.com/alptekinnege/githubfetch
 python githubfetch.py <username>
 ```
 ## Example output(torvalds)
-![example image](screenshot0.png)
+![example image](screenshot.png)
