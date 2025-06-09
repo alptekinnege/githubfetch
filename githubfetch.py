@@ -25,35 +25,30 @@ class Color:
         return f"{color_name}{text}{self.reset}"
 
 def display_avatar(avatar_url):
-    """Download and display avatar as colorful ASCII art"""
+    """Download and display avatar as true-color ASCII art"""
     try:
         response = requests.get(avatar_url)
         if response.ok:
             try:
                 img = Image.open(io.BytesIO(response.content))
-                # Keep original colors and resize to fit terminal width
-                img = img.resize((24, 16))  # Wider rectangle to fit beside text
-                
-                # Convert to ASCII with colors
-                ascii_chars = ['█', '▓', '▒', '░', ' ']
-                colors = [color.red, color.yellow, color.green, color.blue, color.light_blue]
+                # Convert to RGB to ensure we have color data
+                img = img.convert('RGB')
+                # Make it truly square
+                img = img.resize((18, 18))  # Perfect square
                 
                 ascii_art = []
                 for y in range(img.height):
                     row = []
                     for x in range(img.width):
-                        pixel = img.getpixel((x, y))
-                        if isinstance(pixel, tuple) and len(pixel) >= 3:
-                            # RGB image
-                            brightness = sum(pixel[:3]) // 3
-                        else:
-                            # Grayscale
-                            brightness = pixel
+                        r, g, b = img.getpixel((x, y))
                         
-                        ascii_index = int(brightness / 255 * (len(ascii_chars) - 1))
-                        color_index = int(brightness / 255 * (len(colors) - 1))
-                        colored_char = f"{colors[color_index]}{ascii_chars[ascii_index]}{color.reset}"
-                        row.append(colored_char)
+                        # Use true color ANSI codes for accurate colors
+                        # Format: \033[38;2;r;g;bm for foreground color
+                        true_color = f"\033[38;2;{r};{g};{b}m"
+                        
+                        # Use block character to represent the pixel
+                        colored_block = f"{true_color}██{color.reset}"
+                        row.append(colored_block)
                     ascii_art.append(''.join(row))
                 
                 return ascii_art
@@ -125,7 +120,7 @@ for i, element in enumerate(elements):
         print(f"{avatar_art[i]}  {info_line}")
     else:
         # Show just info when avatar art is done
-        print(f"{' ' * 26}{info_line}")
+        print(f"{' ' * 38}{info_line}")
 
 # Show remaining avatar art if any
 if len(avatar_art) > len(elements):
