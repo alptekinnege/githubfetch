@@ -3,18 +3,18 @@
 A neofetch like program for github profiles
 
 ## requirements
-- kitty terminal
-- python3
+- requests
+- pillow
 
 ## Installing
 ```
-sudo curl https://raw.githubusercontent.com/alptekinnege/githubfetch-win/refs/heads/main/githubfetch.py -o /usr/local/bin/githubfetch
-sudo chmod +x /usr/local/bin/githubfetch
+pip install requests pillow
+gh repo clone https://github.com/alptekinnege/githubfetch-win
 ```
 
 ## Usage
 ```
-githubfetch isa-programmer
+python githubfetch.py <username>
 ```
 ## Example output
 ![example image](https://i.imgur.com/NdmszFZ.png)
