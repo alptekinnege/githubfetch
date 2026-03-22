@@ -16,12 +16,6 @@ git clone https://github.com/alptekinnege/githubfetch
 ```
 python githubfetch.py <username>
 ```
+
 ## Example output(torvalds)
 ![example image](screenshot.png)
-
-## Usage(altgh)
-```
-python altgh.py <username>
-```
-## Example output(torvalds)
-![example image](screenshot01.png)
